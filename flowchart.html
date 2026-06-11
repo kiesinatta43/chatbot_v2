@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>System Data Flow — Teaching Assistant Chatbot</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Sarabun', sans-serif;
+      font-weight: 300;
+      background: #e8f4fd;
+      color: #1e3a5f;
+      padding: 2rem 1.5rem 4rem;
+    }
+
+    .page-header {
+      max-width: 1200px;
+      margin: 0 auto 2rem;
+      text-align: center;
+    }
+    .page-title {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: #1d4ed8;
+      margin-bottom: .35rem;
+    }
+    .page-sub {
+      font-size: .95rem;
+      color: #4a6fa5;
+    }
+
+    /* tabs */
+    .tabs {
+      max-width: 1200px;
+      margin: 0 auto 1.5rem;
+      display: flex;
+      gap: .6rem;
+      flex-wrap: wrap;
+    }
+    .tab-btn {
+      padding: .5rem 1.2rem;
+      border-radius: 999px;
+      border: 1.5px solid #bfdbfe;
+      background: #fff;
+      color: #4a6fa5;
+      font-family: inherit;
+      font-size: .9rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all .2s;
+    }
+    .tab-btn.active, .tab-btn:hover {
+      background: linear-gradient(135deg, #60a5fa, #818cf8);
+      color: #fff;
+      border-color: transparent;
+      box-shadow: 0 4px 12px rgba(96,165,250,.35);
+    }
+
+    /* panels */
+    .panel { display: none; max-width: 1200px; margin: 0 auto; }
+    .panel.active { display: block; }
+
+    .section-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: .5rem;
+      background: linear-gradient(135deg, #60a5fa, #818cf8);
+      color: #fff;
+      padding: .4rem 1rem;
+      border-radius: 999px;
+      font-size: .85rem;
+      font-weight: 600;
+      margin-bottom: .8rem;
+      box-shadow: 0 4px 12px rgba(96,165,250,.3);
+    }
+    .section-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin-bottom: .3rem;
+    }
+    .section-desc {
+      font-size: .9rem;
+      color: #4a6fa5;
+      margin-bottom: 1.2rem;
+      line-height: 1.75;
+    }
+    code {
+      background: #dbeafe;
+      color: #1d4ed8;
+      padding: .1rem .4rem;
+      border-radius: 4px;
+      font-size: .85rem;
+    }
+
+    .diagram-card {
+      background: #fff;
+      border: 1.5px solid #bfdbfe;
+      border-radius: 20px;
+      padding: 2rem 1.5rem 1.5rem;
+      box-shadow: 0 6px 24px rgba(59,130,246,.10);
+      overflow-x: auto;
+      margin-bottom: 1.5rem;
+    }
+    .diagram-card .mermaid {
+      display: flex;
+      justify-content: center;
+    }
+
+    /* legend */
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .7rem;
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid #dbeafe;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: .4rem;
+      font-size: .8rem;
+      color: #4a6fa5;
+    }
+    .legend-dot {
+      width: 13px; height: 13px;
+      border-radius: 3px;
+      flex-shrink: 0;
+    }
+
+    /* component table */
+    .comp-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+      margin-top: 1.5rem;
+    }
+    .comp-table th {
+      background: linear-gradient(135deg, #dbeafe, #ede9fe);
+      color: #1e3a5f;
+      font-weight: 600;
+      padding: .65rem 1rem;
+      text-align: left;
+      border-bottom: 2px solid #bfdbfe;
+    }
+    .comp-table td {
+      padding: .6rem 1rem;
+      border-bottom: 1px solid #e8f4fd;
+      vertical-align: top;
+      line-height: 1.65;
+    }
+    .comp-table tr:hover td { background: #f0f9ff; }
+    .file-badge {
+      display: inline-block;
+      background: #eff6ff;
+      border: 1px solid #93c5fd;
+      color: #1d4ed8;
+      padding: .1rem .5rem;
+      border-radius: 5px;
+      font-size: .78rem;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    @media print {
+      body { background: #fff; }
+      .tabs, .tab-btn { display: none; }
+      .panel { display: block !important; margin-bottom: 3rem; }
+      .diagram-card { box-shadow: none; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="page-header">
+  <div class="page-title">🔄 System Data Flow</div>
+  <div class="page-sub">Teaching Assistant Chatbot — การทำงานภายในระบบตั้งแต่รับคำถามจนส่งคำตอบกลับ</div>
+</div>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('flow')">🔄 Data Flow หลัก</button>
+  <button class="tab-btn" onclick="showTab('answer')">💬 ระบบสร้างคำตอบ</button>
+  <button class="tab-btn" onclick="showTab('ingest')">📦 เตรียมเอกสาร</button>
+  <button class="tab-btn" onclick="showTab('components')">🗂️ ตารางสรุปไฟล์</button>
+</div>
+
+<!-- ══════════ TAB 1: DATA FLOW หลัก ══════════ -->
+<div class="panel active" id="tab-flow">
+  <div class="section-badge">🔄 Data Flow หลัก</div>
+  <div class="section-title">เส้นทางข้อมูลตั้งแต่นักเรียนส่งคำถามจนได้คำตอบ</div>
+  <div class="section-desc">
+    แสดงให้เห็นว่าคำถาม <strong>ผ่านไฟล์ไหนบ้าง</strong> และข้อมูลอะไรส่งต่อไปในแต่ละขั้น
+    ก่อนที่คำตอบจะถูกสร้างและส่งกลับมาที่หน้าจอ
+  </div>
+  <div class="diagram-card">
+    <div class="mermaid">
+flowchart TD
+    subgraph BROWSER["🌐  Browser  (index.html + app.js)"]
+        A(["นักเรียนพิมพ์คำถาม"]):::user
+        Z(["แสดงคำตอบ\n+ อ้างอิง\n+ badge สถานะ"]):::user
+    end
+
+    subgraph MAIN["📄  main.py  — FastAPI Server"]
+        B["POST /chat\nรับ ChatRequest\n(question + history)"]:::api
+        B2["load_index()\nโหลด index.pkl\nตรวจสอบ manifest"]:::api
+    end
+
+    subgraph RETRIEVER["🔍  retriever.py  — ค้นหาเอกสาร"]
+        C1["normalize_question_text()\n• แปลงตัวเลขไทย → อารบิก\n• mapping คำพ้องความหมาย\n  เช่น สามมิติ → 3 มิติ"]:::ret
+        C2["build_contextual_query()\nรวมประวัติสนทนาย้อนหลัง\nเพื่อให้คำถามสมบูรณ์"]:::ret
+        C3["TF-IDF transform\nแปลงคำถามเป็น vector\n(char n-gram + word n-gram)"]:::ret
+        C4["cosine_similarity()\nเปรียบเทียบกับทุก chunk\nใน index matrix"]:::ret
+        C5["rerank_indices()\nปรับลำดับตามประเภทคำถาม\nคัด Top-K = 4 ผล"]:::ret
+    end
+
+    subgraph CHATBOT["🤖  chatbot.py  — สร้างคำตอบ"]
+        D1["build_citations()\nสร้าง Citation object\nสำหรับแต่ละ SearchResult"]:::chat
+        D2{"build_classroom_\nexplanation_answer()\nมีรูปแบบคำตอบ\nที่ตั้งไว้ล่วงหน้าตรงกัน?"}:::decision
+        D3["ใช้คำตอบสำเร็จรูป\n(hardcoded)"]:::hardcoded
+        D4{"is_grounded_\nenough()\nคะแนน ≥ 0.08?"}:::decision
+        D5["คำตอบ:\nข้อมูลไม่เพียงพอ\ngrounded = False"]:::fail
+        D6{"CHAT_BACKEND\n= ollama?"}:::decision
+        D7["Ollama LLM\n(llama3.1:8b)\nสร้างคำตอบ generative"]:::llm
+        D8["build_grounded_\nsummary_answer()\nสกัด + เรียบเรียงจาก\nchunk ที่ค้นพบ"]:::extract
+    end
+
+    subgraph RESPONSE["📤  models.py  — ข้อมูลที่ส่งกลับ"]
+        E["ChatResponse\n━━━━━━━━━━━\nanswer: str\ncitations: list\ngrounded: bool"]:::resp
+    end
+
+    A -->|"fetch POST /chat\n{ question, history }"| B
+    B --> B2 --> C1 --> C2 --> C3 --> C4 --> C5
+    C5 -->|"list[SearchResult]"| D1
+    D1 --> D2
+    D2 -->|"✅ ตรงรูปแบบ"| D3 --> E
+    D2 -->|"❌ ไม่ตรง"| D4
+    D4 -->|"❌ คะแนนต่ำ"| D5 --> E
+    D4 -->|"✅ ผ่าน"| D6
+    D6 -->|"ใช่"| D7 --> E
+    D6 -->|"ไม่ (default)"| D8 --> E
+    E -->|"JSON response"| Z
+
+    classDef user      fill:#dbeafe,stroke:#60a5fa,color:#1e3a5f,font-weight:600
+    classDef api       fill:#eff6ff,stroke:#93c5fd,color:#1e3a5f
+    classDef ret       fill:#f0fdf4,stroke:#86efac,color:#166534
+    classDef chat      fill:#faf5ff,stroke:#c4b5fd,color:#3b0764
+    classDef decision  fill:#fef9c3,stroke:#fbbf24,color:#1e3a5f,font-weight:600
+    classDef hardcoded fill:#e0e7ff,stroke:#818cf8,color:#312e81,font-weight:500
+    classDef fail      fill:#fee2e2,stroke:#f87171,color:#991b1b
+    classDef llm       fill:#fdf4ff,stroke:#e879f9,color:#701a75
+    classDef extract   fill:#d1fae5,stroke:#34d399,color:#065f46,font-weight:500
+    classDef resp      fill:#dbeafe,stroke:#3b82f6,color:#1e3a5f,font-weight:600
+    </div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#dbeafe;border:1px solid #60a5fa"></div> Browser / ผู้ใช้</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#eff6ff;border:1px solid #93c5fd"></div> main.py (API)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#f0fdf4;border:1px solid #86efac"></div> retriever.py (ค้นหา)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#faf5ff;border:1px solid #c4b5fd"></div> chatbot.py (สร้างคำตอบ)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#fef9c3;border:1px solid #fbbf24"></div> จุดตัดสินใจ</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#e0e7ff;border:1px solid #818cf8"></div> คำตอบสำเร็จรูป</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#fdf4ff;border:1px solid #e879f9"></div> Ollama LLM</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#d1fae5;border:1px solid #34d399"></div> Extractive</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#fee2e2;border:1px solid #f87171"></div> ไม่พบข้อมูล</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ TAB 2: ระบบสร้างคำตอบ ══════════ -->
+<div class="panel" id="tab-answer">
+  <div class="section-badge">💬 ระบบสร้างคำตอบ (chatbot.py)</div>
+  <div class="section-title">ขั้นตอนละเอียดของการตัดสินใจว่าจะตอบอะไร</div>
+  <div class="section-desc">
+    เมื่อ <code>retriever.py</code> ส่ง <code>SearchResult</code> มาแล้ว
+    <code>chatbot.py</code> จะตัดสินใจ <strong>3 ระดับ</strong> ก่อนสร้างคำตอบ
+  </div>
+  <div class="diagram-card">
+    <div class="mermaid">
+flowchart TD
+    IN(["รับ: question + SearchResults + history\n─── จาก retriever.py ───"]):::input
+
+    subgraph STEP1["ระดับ 1 — ตรวจรูปแบบคำถามที่กำหนดไว้ล่วงหน้า"]
+        S1["normalize_question_synonyms()\nแปลงคำพ้องในคำถาม"]:::norm
+        S2{"ตรงรูปแบบ\nที่โปรแกรมเมอร์\nตั้งไว้?"}:::decision
+        S2A["ขั้นตอนกระบวนการออกแบบ 6 ขั้น"]:::pattern
+        S2B["จุดประสงค์ของกระบวนการ"]:::pattern
+        S2C["ความหมาย / คำนิยาม"]:::pattern
+        S2D["ความสัมพันธ์กับวิทย์/คณิต"]:::pattern
+        S2E["คำถามเกี่ยวกับ 3D printing"]:::pattern
+        S2F["และรูปแบบอื่นๆ อีก..."]:::pattern
+        HARDCODED["✅ ส่งคำตอบสำเร็จรูปกลับทันที\n(grounded = True)"]:::success
+    end
+
+    subgraph STEP2["ระดับ 2 — ตรวจความเพียงพอของข้อมูล"]
+        S3{"มี SearchResult\nส่งมาหรือไม่?"}:::decision
+        NORES["❌ ไม่พบเลย\nตอบ: ยังตอบไม่ได้\nแนะนำเพิ่มเอกสาร"]:::fail
+        S4["is_grounded_enough()\nตรวจ: คะแนนสูงสุด ≥ 0.08\nและ chunk เกี่ยวข้องพอหรือไม่"]:::check
+        NOTGROUNDED["❌ คะแนนต่ำเกินไป\nตอบ: ข้อมูลไม่เพียงพอ\nแนะนำถามใหม่"]:::fail
+    end
+
+    subgraph STEP3["ระดับ 3 — เลือกวิธีสร้างคำตอบ"]
+        S5{"CHAT_BACKEND\n= ollama?"}:::decision
+        OLLAMA["🤖 Ollama LLM\n────────────\nส่ง prompt + citations\nให้ AI สร้างคำตอบ\n(llama3.1:8b)"]:::llm
+        EXTRACT["📄 Extractive Answer\n────────────\nbuild_grounded_summary_answer()\n1. detect_answer_type()\n2. extract_topic_label()\n3. select_primary_citation()\n4. build_fact_statement()\n5. rewrite_excerpt_as_explanation()\n6. เชื่อมเป็นประโยคสมบูรณ์"]:::extract
+    end
+
+    OUT(["ส่ง ChatResponse กลับ\nanswer + citations + grounded"]):::output
+
+    IN --> S1 --> S2
+    S2 -->|"ตรงรูปแบบ"| S2A & S2B & S2C & S2D & S2E & S2F
+    S2A & S2B & S2C & S2D & S2E & S2F --> HARDCODED --> OUT
+    S2 -->|"ไม่ตรง"| S3
+    S3 -->|"ไม่มีผล"| NORES --> OUT
+    S3 -->|"มีผล"| S4
+    S4 -->|"ต่ำกว่าเกณฑ์"| NOTGROUNDED --> OUT
+    S4 -->|"ผ่านเกณฑ์"| S5
+    S5 -->|"ใช่"| OLLAMA --> OUT
+    S5 -->|"ไม่ (default)"| EXTRACT --> OUT
+
+    classDef input    fill:#dbeafe,stroke:#60a5fa,color:#1e3a5f,font-weight:600
+    classDef norm     fill:#f0fdf4,stroke:#86efac,color:#166534
+    classDef decision fill:#fef9c3,stroke:#fbbf24,color:#1e3a5f,font-weight:600
+    classDef pattern  fill:#e0e7ff,stroke:#818cf8,color:#312e81
+    classDef success  fill:#d1fae5,stroke:#34d399,color:#065f46,font-weight:600
+    classDef check    fill:#fff7ed,stroke:#fb923c,color:#9a3412
+    classDef fail     fill:#fee2e2,stroke:#f87171,color:#991b1b
+    classDef llm      fill:#fdf4ff,stroke:#e879f9,color:#701a75
+    classDef extract  fill:#f0fdf4,stroke:#34d399,color:#166534
+    classDef output   fill:#dbeafe,stroke:#3b82f6,color:#1e3a5f,font-weight:600
+    </div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#e0e7ff;border:1px solid #818cf8"></div> คำตอบสำเร็จรูป (hardcoded)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#fee2e2;border:1px solid #f87171"></div> ไม่พบ / ไม่เพียงพอ</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#fdf4ff;border:1px solid #e879f9"></div> Ollama LLM mode</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#f0fdf4;border:1px solid #34d399"></div> Extractive mode (default)</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ TAB 3: INGEST ══════════ -->
+<div class="panel" id="tab-ingest">
+  <div class="section-badge">📦 เตรียมเอกสาร (Ingest)</div>
+  <div class="section-title">กระบวนการแปลงเอกสารเป็น Search Index</div>
+  <div class="section-desc">
+    รันด้วยคำสั่ง <code>python -m app.ingest</code> — ทำงานครั้งเดียว
+    ผลลัพธ์คือ <code>data/index.pkl</code> ที่ระบบตอบคำถามใช้ค้นหา
+  </div>
+  <div class="diagram-card">
+    <div class="mermaid">
+flowchart TD
+    subgraph SRC["📁  โฟลเดอร์ src/  (ครูวางไฟล์เอกสาร)"]
+        F1["📕 ไฟล์ .pdf"]:::file
+        F2["📘 ไฟล์ .docx"]:::file
+        F3["📃 ไฟล์ .txt"]:::file
+    end
+
+    subgraph DOC["📄  documents.py  — อ่านและแบ่งเอกสาร"]
+        R1["PyMuPDF (fitz)\nอ่าน PDF ทีละ block\nตรวจทุก span"]:::read
+        R1F["กรองลายน้ำออก\n• font size > 40pt\n• สีสว่าง RGB > 180"]:::filter
+        R2["python-docx\nอ่าน paragraph\nและ table"]:::read
+        R3["open().read()\nอ่านข้อความ plain text"]:::read
+        CH["split_into_chunks()\nแบ่งทุก 900 ตัวอักษร\noverlap 150 ตัวอักษร\nบันทึก source + section"]:::chunk
+        NF["is_noise_chunk()\nทิ้ง chunk ที่:\n• สั้น < 40 ตัว\n• ข้อความสงวนลิขสิทธิ์\n• ไม่ใช่ภาษาไทย"]:::filter
+        DC["DocumentChunk\nsource, section, text"]:::data
+    end
+
+    subgraph IDX["🔢  retriever.py  — สร้าง Index"]
+        V1["char TF-IDF\nVectorizer\nchar n-gram (3–5)\nจับรูปแบบตัวอักษร\nช่วยคำที่สะกดใกล้กัน"]:::vec
+        V2["word TF-IDF\nVectorizer\nword n-gram (1–2)\nจับคำและวลี"]:::vec
+        HS["hstack()\nรวม matrix ทั้ง 2 ตัว\nเป็น matrix เดียว"]:::combine
+        MF["build_source_manifest()\nบันทึก fingerprint ไฟล์\nใช้ตรวจว่าเอกสารเปลี่ยนหรือไม่"]:::meta
+        SAVE(["💾 บันทึก data/index.pkl\nSearchIndex object"]):::save
+    end
+
+    F1 --> R1 --> R1F
+    F2 --> R2
+    F3 --> R3
+    R1F & R2 & R3 --> CH --> NF
+    NF -->|"ผ่าน"| DC
+    NF -->|"ตัดออก"| TRASH(["🗑️"]):::trash
+    DC --> V1 & V2
+    V1 & V2 --> HS
+    HS --> MF --> SAVE
+
+    classDef file    fill:#dbeafe,stroke:#60a5fa,color:#1e3a5f,font-weight:500
+    classDef read    fill:#eff6ff,stroke:#93c5fd,color:#1e3a5f
+    classDef filter  fill:#fff7ed,stroke:#fb923c,color:#9a3412
+    classDef chunk   fill:#f0fdf4,stroke:#86efac,color:#166534
+    classDef data    fill:#faf5ff,stroke:#c4b5fd,color:#3b0764
+    classDef vec     fill:#fdf4ff,stroke:#e879f9,color:#701a75
+    classDef combine fill:#f0fdf4,stroke:#34d399,color:#166534
+    classDef meta    fill:#fef9c3,stroke:#fbbf24,color:#1e3a5f
+    classDef save    fill:#d1fae5,stroke:#34d399,color:#065f46,font-weight:700
+    classDef trash   fill:#fee2e2,stroke:#f87171,color:#991b1b
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ TAB 4: COMPONENTS TABLE ══════════ -->
+<div class="panel" id="tab-components">
+  <div class="section-badge">🗂️ ตารางสรุปไฟล์และหน้าที่</div>
+  <div class="section-title">แต่ละไฟล์ทำหน้าที่อะไรในระบบ</div>
+  <div class="section-desc">ภาพรวมทุกไฟล์ในโปรเจกต์ พร้อมบทบาทและความสัมพันธ์กัน</div>
+
+  <div class="diagram-card" style="padding: 1.5rem; overflow-x: auto;">
+    <table class="comp-table">
+      <thead>
+        <tr>
+          <th>ไฟล์</th>
+          <th>หน้าที่หลัก</th>
+          <th>ส่งข้อมูลให้</th>
+          <th>รับข้อมูลจาก</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="file-badge">index.html</span><br><span class="file-badge">app.js</span><br><span class="file-badge">styles.css</span></td>
+          <td>หน้าเว็บ — รับคำถามจากนักเรียน, แสดงผล, typing indicator, อ้างอิง</td>
+          <td>ส่ง <code>POST /chat</code> ไปที่ server</td>
+          <td>รับ JSON <code>ChatResponse</code> กลับมาแสดง</td>
+        </tr>
+        <tr>
+          <td><span class="file-badge">main.py</span></td>
+          <td>FastAPI server — กำหนด endpoint <code>/chat</code> <code>/health</code> <code>/documents</code></td>
+          <td>เรียก <code>search()</code> และ <code>answer_question()</code></td>
+          <td>รับ HTTP request จาก browser</td>
+        </tr>
+        <tr>
+          <td><span class="file-badge">retriever.py</span></td>
+          <td>ค้นหาเอกสาร — normalize คำถาม, TF-IDF cosine similarity, rerank</td>
+          <td>ส่ง <code>list[SearchResult]</code> ให้ chatbot.py</td>
+          <td>รับ question + history จาก main.py, โหลด index.pkl</td>
+        </tr>
+        <tr>
+          <td><span class="file-badge">chatbot.py</span></td>
+          <td>สร้างคำตอบ — ตรวจ hardcoded, ตรวจเกณฑ์, เลือก extractive หรือ Ollama</td>
+          <td>ส่ง <code>ChatResponse</code> กลับ main.py</td>
+          <td>รับ SearchResult จาก retriever.py</td>
+        </tr>
+        <tr>
+          <td><span class="file-badge">documents.py</span></td>
+          <td>อ่านไฟล์ PDF/DOCX/TXT, กรองลายน้ำ, แบ่ง chunk, กรอง noise</td>
+          <td>ส่ง <code>list[DocumentChunk]</code> ให้ ingest.py</td>
+          <td>รับเส้นทางไฟล์จาก config.py</td>
+        </tr>
+        <tr>
+          <td><span class="file-badge">ingest.py</span></td>
+          <td>สร้าง Search Index — รันคำสั่ง <code>python -m app.ingest</code> ครั้งเดียว</td>
+          <td>บันทึก <code>data/index.pkl</code></td>
+          <td>รับ chunks จาก documents.py</td>
+        </tr>
+        <tr>
+          <td><span class="file-badge">models.py</span></td>
+          <td>กำหนด data structure — <code>ChatRequest</code>, <code>ChatResponse</code>, <code>Citation</code></td>
+          <td>ใช้โดยทุกไฟล์</td>
+          <td>—</td>
+        </tr>
+        <tr>
+          <td><span class="file-badge">config.py</span></td>
+          <td>ค่าตั้งต้น — path ไฟล์, chunk size, top-K, backend, Ollama URL</td>
+          <td>ใช้โดยทุกไฟล์</td>
+          <td>Environment variables</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div style="margin-top:1.5rem; background:#f0f9ff; border:1.5px solid #bae6fd; border-radius:12px; padding:1rem 1.2rem;">
+      <div style="font-weight:600; color:#1d4ed8; margin-bottom:.5rem;">📌 ลำดับการทำงาน (สรุปสั้น)</div>
+      <div style="font-size:.9rem; line-height:2; color:#1e3a5f;">
+        <b>ครั้งแรก:</b> ครูวางไฟล์ใน <code>src/</code> → รัน <code>ingest.py</code> → สร้าง <code>index.pkl</code><br>
+        <b>ทุกครั้งที่ถาม:</b> Browser → <code>main.py</code> → <code>retriever.py</code> (ค้นหา) → <code>chatbot.py</code> (สร้างคำตอบ) → Browser
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'base',
+    themeVariables: {
+      fontFamily: "'Sarabun', sans-serif",
+      fontSize: '13px',
+      primaryColor: '#dbeafe',
+      primaryBorderColor: '#60a5fa',
+      primaryTextColor: '#1e3a5f',
+      lineColor: '#60a5fa',
+      edgeLabelBackground: '#ffffff',
+    },
+    flowchart: { curve: 'basis', padding: 18, nodeSpacing: 45, rankSpacing: 55, htmlLabels: true }
+  });
+
+  function showTab(name) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+    event.target.classList.add('active');
+  }
+</script>
+</body>
+</html>

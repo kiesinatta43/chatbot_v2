@@ -1,0 +1,9 @@
+data/logs/
+__pycache__/
+*.pyc
+.DS_Store
+**/.DS_Store
+Icon?
+.claude/settings.local.json
+.venv/
+__pycache__/
