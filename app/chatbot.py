@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import re
-from urllib.error import URLError
+from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 from app.config import (
@@ -515,18 +515,26 @@ def generate_with_gemini(question: str, citations: list[Citation], history: list
     try:
         with urlopen(request, timeout=GEMINI_TIMEOUT) as response:
             data = json.loads(response.read().decode("utf-8"))
-    except (OSError, URLError, TimeoutError, json.JSONDecodeError):
+    except (OSError, URLError, TimeoutError, json.JSONDecodeError) as exc:
+        detail = ""
+        if isinstance(exc, HTTPError):
+            try:
+                detail = exc.read().decode("utf-8", errors="ignore")
+            except Exception:
+                pass
+        print(f"[gemini] request failed: {exc!r} {detail}".strip())
         return None
 
     try:
         answer = str(data["candidates"][0]["content"]["parts"][0]["text"]).strip()
     except (KeyError, IndexError, TypeError):
+        print(f"[gemini] unexpected response shape: {data}")
         return None
 
     if not answer:
         return None
-    if not has_valid_citation(answer, citations):
-        return None
+    # ไม่บังคับว่าต้องมี [n] เป๊ะเหมือนคำตอบล็อกไว้ — ให้ความสำคัญกับคำอธิบาย
+    # ที่ Gemini สรุปจากเอกสารเองมากกว่า (แนบ citation ทั้งหมดที่ใช้เป็นบริบทไปด้วย)
     return answer
 
 
