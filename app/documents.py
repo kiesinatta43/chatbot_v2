@@ -198,7 +198,10 @@ def split_into_segments(text: str) -> list[str]:
 
 def build_file_fingerprint(path: Path, source: str) -> str:
     stats = path.stat()
-    return f"{source}:{stats.st_size}:{int(stats.st_mtime)}"
+    # หมายเหตุ: ไม่ใช้ st_mtime เพราะการ checkout ผ่าน git (เช่น บน Render)
+    # จะเปลี่ยน mtime ของไฟล์ทุกครั้ง ทำให้ index ที่ build ไว้ล่วงหน้า
+    # ดูเหมือน "outdated" ทั้งที่เนื้อไฟล์ไม่ได้เปลี่ยน
+    return f"{source}:{stats.st_size}"
 
 
 def normalize_document_text(text: str) -> str:
