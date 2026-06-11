@@ -2,19 +2,10 @@ from __future__ import annotations
 
 import json
 import re
-from urllib.error import HTTPError, URLError
+from urllib.error import URLError
 from urllib.request import Request, urlopen
 
-from app.config import (
-    CHAT_BACKEND,
-    GEMINI_API_KEY,
-    GEMINI_TIMEOUT,
-    GEMINI_URL,
-    MAX_HISTORY_TURNS,
-    OLLAMA_MODEL,
-    OLLAMA_TIMEOUT,
-    OLLAMA_URL,
-)
+from app.config import CHAT_BACKEND, MAX_HISTORY_TURNS, OLLAMA_MODEL, OLLAMA_TIMEOUT, OLLAMA_URL
 from app.models import Citation, ChatResponse
 from app.retriever import SearchResult
 
@@ -42,15 +33,6 @@ def answer_question(question: str, results: list[SearchResult], history: list[di
 
     citations = build_citations(question, results) if results else []
     history = normalize_history(history or [])
-
-    # โหมด Gemini: ให้ LLM อ่านบริบทเอกสารแล้วสรุป/อธิบายเอง (แบบ NotebookLM)
-    # โดยไม่ใช้คำตอบสำเร็จรูปที่ล็อกไว้ — ลองก่อนเป็นอันดับแรก
-    if CHAT_BACKEND == "gemini" and results and is_grounded_enough(question, results, citations):
-        gemini_answer = generate_with_gemini(question, citations, history)
-        if gemini_answer is not None:
-            referenced_ids = {int(m) for m in re.findall(r"\[(\d+)\]", gemini_answer)}
-            matched_citations = [c for c in citations if c.id in referenced_ids] or citations
-            return ChatResponse(answer=gemini_answer, citations=matched_citations, grounded=True)
 
     early_answer = build_classroom_explanation_answer(question, citations, results, history)
     if early_answer:
@@ -492,50 +474,6 @@ def build_classroom_explanation_answer(
         )
 
     return ""
-
-
-def generate_with_gemini(question: str, citations: list[Citation], history: list[dict[str, str]]) -> str | None:
-    """ส่งบริบทเอกสาร (citations) ให้ Gemini สรุป/อธิบายเป็นคำตอบ แบบเดียวกับ NotebookLM
-    โดยให้ตอบจากบริบทที่แนบไปเท่านั้น (prompt บังคับไว้ใน build_grounded_prompt)"""
-    if not GEMINI_API_KEY:
-        return None
-
-    prompt = build_grounded_prompt(question, citations, history)
-    payload = {
-        "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {"temperature": 0.2},
-    }
-    request = Request(
-        f"{GEMINI_URL}?key={GEMINI_API_KEY}",
-        data=json.dumps(payload).encode("utf-8"),
-        headers={"Content-Type": "application/json"},
-        method="POST",
-    )
-
-    try:
-        with urlopen(request, timeout=GEMINI_TIMEOUT) as response:
-            data = json.loads(response.read().decode("utf-8"))
-    except (OSError, URLError, TimeoutError, json.JSONDecodeError) as exc:
-        detail = ""
-        if isinstance(exc, HTTPError):
-            try:
-                detail = exc.read().decode("utf-8", errors="ignore")
-            except Exception:
-                pass
-        print(f"[gemini] request failed: {exc!r} {detail}".strip())
-        return None
-
-    try:
-        answer = str(data["candidates"][0]["content"]["parts"][0]["text"]).strip()
-    except (KeyError, IndexError, TypeError):
-        print(f"[gemini] unexpected response shape: {data}")
-        return None
-
-    if not answer:
-        return None
-    # ไม่บังคับว่าต้องมี [n] เป๊ะเหมือนคำตอบล็อกไว้ — ให้ความสำคัญกับคำอธิบาย
-    # ที่ Gemini สรุปจากเอกสารเองมากกว่า (แนบ citation ทั้งหมดที่ใช้เป็นบริบทไปด้วย)
-    return answer
 
 
 def generate_with_ollama(question: str, citations: list[Citation], history: list[dict[str, str]]) -> str | None:
